@@ -1,31 +1,52 @@
 package org.nhtoi.utils;
 
 import io.github.cdimascio.dotenv.Dotenv;
-import java.util.List; // Import List
-import org.nhtoi.model.Notification; // Import Notification
-import java.util.ArrayList;
+import org.nhtoi.model.User; // Assuming you have a User model class
+import twitter4j.*;
+import twitter4j.conf.ConfigurationBuilder;
+
 
 public class APIHelper {
     private final Dotenv dotenv = Dotenv.load();
-    public final String twitterApiKey = dotenv.get("TWITTER_API_KEY");
+    private final String twitterApiKey = dotenv.get("TWITTER_API_KEY");
+    private final String twitterApiKeySecret = dotenv.get("TWITTER_API_KEY_SECRET");
+    private final String twitterAccessToken = dotenv.get("TWITTER_ACCESS_TOKEN");
+    private final String twitterAccessTokenSecret = dotenv.get("TWITTER_ACCESS_TOKEN_SECRET");
 
-    public List<Notification> fetchTwitterNotifications() {
-        // Initialize an empty list of notifications
-        List<Notification> fetchedNotifications = new ArrayList<>();
-
+    // Method to fetch authenticated user's information
+    public User fetchAuthenticatedUser() {
+        User authenticatedUser = null;
         try {
-            // Implement API call to Twitter using the API key
-            // Utilize an HTTP client library or Twitter API library
+            ConfigurationBuilder cb = new ConfigurationBuilder();
+            cb.setDebugEnabled(true)
+                    .setOAuthConsumerKey(twitterApiKey)
+                    .setOAuthConsumerSecret(twitterApiKeySecret)
+                    .setOAuthAccessToken(twitterAccessToken)
+                    .setOAuthAccessTokenSecret(twitterAccessTokenSecret);
 
-            // Parse the API response and convert it into a list of Notification objects
-            // Add the notifications to the fetchedNotifications list
+            TwitterFactory tf = new TwitterFactory(cb.build());
+            Twitter twitter = tf.getInstance();
 
-        } catch (Exception e) {
-            // Handle any exceptions (e.g., network errors, parsing errors)
+            // Retrieve authenticated user's information
+            twitter4j.User twitterUser = twitter.verifyCredentials();
+            // Create a User object from retrieved data
+            authenticatedUser = new User(
+                    twitterUser.getId(),
+                    twitterUser.getScreenName(),
+                    twitterUser.getName(),
+                    twitterUser.getDescription(),
+                    twitterUser.getProfileImageURL(),
+                    twitterUser.isVerified(),
+                    twitterUser.getFollowersCount(),
+                    twitterUser.getStatusesCount(),
+                    twitterUser.getFollowersCount(),
+                    twitterUser.getFriendsCount()
+            );
+
+        } catch (TwitterException e) {
             e.printStackTrace();
+            // Handle Twitter API exceptions here
         }
-
-        // Return the list of fetched notifications
-        return fetchedNotifications;
+        return authenticatedUser;
     }
 }
