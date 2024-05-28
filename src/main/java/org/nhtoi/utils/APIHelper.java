@@ -1,35 +1,35 @@
 package org.nhtoi.utils;
 
 import io.github.cdimascio.dotenv.Dotenv;
-import org.nhtoi.model.User; // Assuming you have a User model class
-import twitter4j.*;
+import org.nhtoi.model.User;
+import twitter4j.Twitter;
+import twitter4j.TwitterException;
+import twitter4j.TwitterFactory;
+import twitter4j.auth.AccessToken;
 import twitter4j.conf.ConfigurationBuilder;
 
-
 public class APIHelper {
-    private final Dotenv dotenv = Dotenv.load();
-    private final String twitterApiKey = dotenv.get("TWITTER_API_KEY");
-    private final String twitterApiKeySecret = dotenv.get("TWITTER_API_KEY_SECRET");
-    private final String twitterAccessToken = dotenv.get("TWITTER_ACCESS_TOKEN");
-    private final String twitterAccessTokenSecret = dotenv.get("TWITTER_ACCESS_TOKEN_SECRET");
+    private static final Dotenv dotenv = Dotenv.configure()
+            .directory("C:\\Users\\kevin\\IdeaProjects\\untitled\\src\\main\\java\\org\\nhtoi\\.env")
+            .load();
+    private static final String twitterApiKey = dotenv.get("TWITTER_API_KEY");
+    private static final String twitterApiKeySecret = dotenv.get("TWITTER_API_KEY_SECRET");
 
-    // Method to fetch authenticated user's information
-    public User fetchAuthenticatedUser() {
+    // Method to fetch authenticated user's information using a dynamic access token
+    public static User fetchAuthenticatedUser(AccessToken dynamicAccessToken) {
         User authenticatedUser = null;
         try {
             ConfigurationBuilder cb = new ConfigurationBuilder();
             cb.setDebugEnabled(true)
                     .setOAuthConsumerKey(twitterApiKey)
-                    .setOAuthConsumerSecret(twitterApiKeySecret)
-                    .setOAuthAccessToken(twitterAccessToken)
-                    .setOAuthAccessTokenSecret(twitterAccessTokenSecret);
+                    .setOAuthConsumerSecret(twitterApiKeySecret);
 
             TwitterFactory tf = new TwitterFactory(cb.build());
             Twitter twitter = tf.getInstance();
+            twitter.setOAuthAccessToken(dynamicAccessToken);
 
             // Retrieve authenticated user's information
             twitter4j.User twitterUser = twitter.verifyCredentials();
-            // Create a User object from retrieved data
             authenticatedUser = new User(
                     twitterUser.getId(),
                     twitterUser.getScreenName(),
