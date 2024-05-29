@@ -8,8 +8,9 @@ import twitter4j.TwitterException;
 import twitter4j.TwitterFactory;
 import twitter4j.auth.AccessToken;
 import twitter4j.auth.RequestToken;
-
+import org.nhtoi.utils.DatabaseHelper;
 import java.awt.*;
+import java.awt.dnd.DropTarget;
 import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -18,15 +19,15 @@ import java.util.Map;
 
 public class OAuthManager {
     private static final String CALLBACK_URL = "pulsepoint://callback";
-    private static final Dotenv dotenv = Dotenv.configure().directory("C:\\Users\\kevin\\IdeaProjects\\untitled\\src\\main\\java\\org\\nhtoi").load();
+    private static final Dotenv dotenv = Dotenv.configure().directory("C:\\Users\\kevin\\OneDrive\\Desktop\\Java Projects\\PulsePoint\\src\\main\\java\\org\\nhtoi\\utils\\.env").load();
     private static final String twitterApiKey = dotenv.get("TWITTER_API_KEY");
     private static final String twitterApiKeySecret = dotenv.get("TWITTER_API_KEY_SECRET");
     private static final Map<String, AccessToken> userTokens = new HashMap<>();
     private static RequestToken requestToken;
     private static Twitter twitter;
     private static AccessToken currentUserToken;
-    private static final String REQUEST_TOKEN_PATH = "C:\\Users\\kevin\\IdeaProjects\\untitled\\src\\main\\java\\org\\nhtoi\\auth\\requestToken.ser";
-    private static final String CURRENT_USER_TOKEN_PATH = "C:\\Users\\kevin\\IdeaProjects\\untitled\\src\\main\\java\\org\\nhtoi\\auth\\currentUserToken.ser";
+    private static final String REQUEST_TOKEN_PATH = "C:\\Users\\kevin\\OneDrive\\Desktop\\Java Projects\\PulsePoint\\src\\main\\java\\org\\nhtoi\\auth\\requestToken.ser";
+    private static final String CURRENT_USER_TOKEN_PATH = "C:\\Users\\kevin\\OneDrive\\Desktop\\Java Projects\\PulsePoint\\src\\main\\java\\org\\nhtoi\\auth\\currentUserToken.ser";
 
     static {
         loadCurrentUserToken();
@@ -45,6 +46,11 @@ public class OAuthManager {
             requestToken = twitter.getOAuthRequestToken(CALLBACK_URL);
 
             System.out.println("RequestToken obtained: " + requestToken.getToken());
+
+            // Ensure the database connection is established before saving tokens
+            DatabaseHelper.connectDB();
+            DatabaseHelper.saveTokens(requestToken);
+
             saveRequestToken(requestToken);
 
             String authenticationURL = requestToken.getAuthorizationURL();

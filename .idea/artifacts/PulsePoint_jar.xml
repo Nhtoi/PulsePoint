@@ -1,6 +1,6 @@
 <component name="ArtifactManager">
   <artifact type="jar" build-on-make="true" name="PulsePoint:jar">
-    <output-path>$PROJECT_DIR$/out/artifacts/PulsePoint_jar</output-path>
+    <output-path>$PROJECT_DIR$</output-path>
     <root id="archive" name="PulsePoint.jar">
       <element id="module-output" name="PulsePoint" />
       <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/junit/jupiter/junit-jupiter/5.11.0-M1/junit-jupiter-5.11.0-M1.jar" path-in-jar="/" />

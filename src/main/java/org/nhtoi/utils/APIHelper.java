@@ -10,7 +10,7 @@ import twitter4j.conf.ConfigurationBuilder;
 
 public class APIHelper {
     private static final Dotenv dotenv = Dotenv.configure()
-            .directory("C:\\Users\\kevin\\IdeaProjects\\untitled\\src\\main\\java\\org\\nhtoi\\.env")
+            .directory("C:\\Users\\kevin\\OneDrive\\Desktop\\Java Projects\\PulsePoint\\src\\main\\java\\org\\nhtoi\\utils\\.env")
             .load();
     private static final String twitterApiKey = dotenv.get("TWITTER_API_KEY");
     private static final String twitterApiKeySecret = dotenv.get("TWITTER_API_KEY_SECRET");
