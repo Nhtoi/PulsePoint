@@ -1,19 +1,18 @@
 package org.nhtoi.auth;
 
 import io.github.cdimascio.dotenv.Dotenv;
-import org.nhtoi.model.User;
-import org.nhtoi.utils.APIHelper;
+import org.nhtoi.utils.DatabaseHelper;
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
 import twitter4j.TwitterFactory;
 import twitter4j.auth.AccessToken;
 import twitter4j.auth.RequestToken;
-import org.nhtoi.utils.DatabaseHelper;
+
 import java.awt.*;
-import java.awt.dnd.DropTarget;
 import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -26,16 +25,18 @@ public class OAuthManager {
     private static RequestToken requestToken;
     private static Twitter twitter;
     private static AccessToken currentUserToken;
-    private static final String REQUEST_TOKEN_PATH = "C:\\Users\\kevin\\OneDrive\\Desktop\\Java Projects\\PulsePoint\\src\\main\\java\\org\\nhtoi\\auth\\requestToken.ser";
-    private static final String CURRENT_USER_TOKEN_PATH = "C:\\Users\\kevin\\OneDrive\\Desktop\\Java Projects\\PulsePoint\\src\\main\\java\\org\\nhtoi\\auth\\currentUserToken.ser";
+    private static String currentUserId;
 
     static {
-        loadCurrentUserToken();
         initializeTwitterInstance();
     }
 
     public static boolean isAuthenticated() {
         return currentUserToken != null;
+    }
+
+    public static void setCurrentUserId(String userId) {
+        currentUserId = userId;
     }
 
     public static boolean launchTwitterLinking() {
@@ -47,20 +48,31 @@ public class OAuthManager {
 
             System.out.println("RequestToken obtained: " + requestToken.getToken());
 
-            // Ensure the database connection is established before saving tokens
+            // Save the request token to the database for the current user
             DatabaseHelper.connectDB();
-            DatabaseHelper.saveTokens(requestToken);
-
-            saveRequestToken(requestToken);
+            DatabaseHelper.saveRequestToken(Integer.parseInt(currentUserId), requestToken);
 
             String authenticationURL = requestToken.getAuthorizationURL();
             openBrowser(authenticationURL);
 
             return true;
-        } catch (Exception e) {
+        } catch (TwitterException e) {
+            System.out.println("TwitterException: " + e.getMessage());
             e.printStackTrace();
-            return false;
+        } catch (SQLException e) {
+            System.out.println("SQLException: " + e.getMessage());
+            e.printStackTrace();
+        } catch (IOException e) {
+            System.out.println("IOException: " + e.getMessage());
+            e.printStackTrace();
+        } catch (URISyntaxException e) {
+            System.out.println("URISyntaxException: " + e.getMessage());
+            e.printStackTrace();
+        } catch (Exception e) {
+            System.out.println("Unexpected Exception: " + e.getMessage());
+            e.printStackTrace();
         }
+        return false;
     }
 
     private static void openBrowser(String url) throws IOException, URISyntaxException {
@@ -70,7 +82,7 @@ public class OAuthManager {
 
     public static void handleCallback(String callbackURI) {
         try {
-            loadRequestToken(); // Ensure the requestToken is loaded
+            requestToken = DatabaseHelper.loadRequestToken(Integer.parseInt(currentUserId)); // Load the requestToken for the current user from the database
 
             // Ensure twitter instance is initialized
             if (twitter == null) {
@@ -85,18 +97,17 @@ public class OAuthManager {
             AccessToken accessToken = twitter.getOAuthAccessToken(requestToken, verifier);
             twitter.setOAuthAccessToken(accessToken);
             currentUserToken = accessToken;
-            saveCurrentUserToken();
-            userTokens.put(currentUserToken.getScreenName(), accessToken);
 
-            User authenticatedUser = APIHelper.fetchAuthenticatedUser(accessToken);
-            if (authenticatedUser != null) {
-                System.out.println("User Information:");
-                System.out.println("Screen Name: " + authenticatedUser.getScreenName());
-            } else {
-                System.out.println("Failed to retrieve user information.");
-            }
-        } catch (TwitterException e) {
-            System.out.println("TwitterException: " + e.getMessage());
+            // Save the current user token to the database
+            String userId = currentUserToken.getScreenName();
+            DatabaseHelper.saveAccessToken(Integer.parseInt(userId), currentUserToken);
+
+            // Save the user token to the userTokens map
+            userTokens.put(userId, accessToken);
+
+            System.out.println("Successfully authenticated and obtained access token.");
+        } catch (TwitterException | SQLException e) {
+            System.out.println("Exception: " + e.getMessage());
             e.printStackTrace();
         } catch (Exception e) {
             e.printStackTrace();
@@ -105,8 +116,10 @@ public class OAuthManager {
 
     public static void logout() {
         currentUserToken = null;
-        twitter.setOAuthAccessToken(null);
-        saveCurrentUserToken();
+        if (twitter != null) {
+            twitter.setOAuthAccessToken(null);
+        }
+        // Optionally, remove the current user token from the database
     }
 
     public static AccessToken getCurrentUserToken() {
@@ -114,54 +127,18 @@ public class OAuthManager {
     }
 
     public static void setCurrentUser(String screenName) {
-        currentUserToken = userTokens.get(screenName);
-        if (currentUserToken != null) {
-            twitter.setOAuthAccessToken(currentUserToken);
+        try {
+            currentUserToken = DatabaseHelper.loadAccessToken(Integer.parseInt(screenName));
+            if (currentUserToken != null) {
+                twitter.setOAuthAccessToken(currentUserToken);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
 
     public static Map<String, AccessToken> getUserTokens() {
         return userTokens;
-    }
-
-    private static void saveRequestToken(RequestToken requestToken) {
-        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(REQUEST_TOKEN_PATH))) {
-            oos.writeObject(requestToken);
-            System.out.println("RequestToken saved.");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private static void loadRequestToken() {
-        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(REQUEST_TOKEN_PATH))) {
-            requestToken = (RequestToken) ois.readObject();
-            System.out.println("RequestToken loaded: " + requestToken.getToken());
-        } catch (FileNotFoundException e) {
-            System.out.println("requestToken.ser file not found. Proceeding without loading the request token.");
-        } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private static void saveCurrentUserToken() {
-        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(CURRENT_USER_TOKEN_PATH))) {
-            oos.writeObject(currentUserToken);
-            System.out.println("CurrentUserToken saved.");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private static void loadCurrentUserToken() {
-        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(CURRENT_USER_TOKEN_PATH))) {
-            currentUserToken = (AccessToken) ois.readObject();
-            System.out.println("CurrentUserToken loaded.");
-        } catch (FileNotFoundException e) {
-            System.out.println("currentUserToken.ser file not found. Proceeding without loading the current user token.");
-        } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
-        }
     }
 
     private static String extractVerifierFromCallbackURI(String callbackURI) {

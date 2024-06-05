@@ -17,7 +17,7 @@ public class AccountLinkingView extends Application {
     public static void displayAccountLinkingView(Stage primaryStage) {
         Button linkAccountButton = new Button("Link Twitter Account");
         linkAccountButton.setOnAction(event -> {
-            if (!OAuthManager.launchTwitterLinking()) {
+            if (OAuthManager.launchTwitterLinking()) {
                 System.out.println("Failed to launch Twitter linking process.");
             }
         });
