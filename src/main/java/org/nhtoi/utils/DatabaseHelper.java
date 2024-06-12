@@ -35,12 +35,14 @@ public class DatabaseHelper {
             stmt.setString(1, email);
             stmt.setString(2, password);
             stmt.executeUpdate();
+            System.out.println("User created with email: " + email);
             return true;
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
         }
     }
+
 
     public static int getUserIdByEmail(String email) {
         if (connection == null) {

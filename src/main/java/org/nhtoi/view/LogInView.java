@@ -9,8 +9,10 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import javafx.stage.Stage;
+import org.nhtoi.auth.OAuthManager;
 import org.nhtoi.utils.DatabaseHelper;
 import org.nhtoi.utils.SessionManager;
+import twitter4j.auth.AccessToken;
 
 public class LogInView extends Application {
     @Override
@@ -47,9 +49,33 @@ public class LogInView extends Application {
             String password = passwordInput.getText();
             int userId = DatabaseHelper.getUserIdByEmail(email);
             if (userId != -1) {
-                SessionManager.setUserEmail(email); // Save email in SessionManager
-                MainView.setLoggedInUser(String.valueOf(userId));
-                MainView.displayMainView(primaryStage);
+                // Check if the user has a saved access token
+                try {
+                    AccessToken accessToken = DatabaseHelper.loadAccessToken(userId);
+                    if (accessToken != null) {
+                        // Use the saved access token
+                        OAuthManager.setCurrentUserId(String.valueOf(userId));
+                        OAuthManager.setAccessToken(accessToken);
+                        if (OAuthManager.isAuthenticated()) {
+                            System.out.println("User authenticated using saved access token.");
+                            SessionManager.setUserEmail(email); // Save email in SessionManager
+                            MainView.setLoggedInUser(String.valueOf(userId));
+                            MainView.displayMainView(primaryStage);
+                        } else {
+                            System.out.println("Saved access token is invalid.");
+                            displayLogInView(primaryStage);
+                        }
+                    } else {
+                        System.out.println("No saved access token found. Proceeding with normal login.");
+                        SessionManager.setUserEmail(email); // Save email in SessionManager
+                        MainView.setLoggedInUser(String.valueOf(userId));
+                        MainView.displayMainView(primaryStage);
+                    }
+                } catch (Exception ex) {
+                    System.out.println("Error checking for saved access token: " + ex.getMessage());
+                    ex.printStackTrace();
+                    displayLogInView(primaryStage);
+                }
             } else {
                 System.out.println("Invalid email or password.");
             }

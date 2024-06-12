@@ -38,7 +38,12 @@ public class OAuthManager {
     public static void setCurrentUserId(String userId) {
         currentUserId = userId;
     }
-
+    public static void setAccessToken(AccessToken accessToken) {
+        currentUserToken = accessToken;
+        if (twitter != null) {
+            twitter.setOAuthAccessToken(accessToken);
+        }
+    }
     public static boolean launchTwitterLinking() {
         try {
             if (twitter == null) {
@@ -82,15 +87,13 @@ public class OAuthManager {
 
     public static void handleCallback(String callbackURI) {
         try {
-            requestToken = DatabaseHelper.loadRequestToken(Integer.parseInt(currentUserId)); // Load the requestToken for the current user from the database
-
-            // Ensure twitter instance is initialized
-            if (twitter == null) {
-                initializeTwitterInstance();
-            }
-
+            requestToken = DatabaseHelper.loadRequestToken(Integer.parseInt(currentUserId));
             if (requestToken == null) {
                 throw new IllegalStateException("requestToken is not initialized. Did you call launchTwitterLinking?");
+            }
+
+            if (twitter == null) {
+                initializeTwitterInstance();
             }
 
             String verifier = extractVerifierFromCallbackURI(callbackURI);
@@ -99,16 +102,10 @@ public class OAuthManager {
             currentUserToken = accessToken;
 
             // Save the current user token to the database
-            String userId = currentUserToken.getScreenName();
-            DatabaseHelper.saveAccessToken(Integer.parseInt(userId), currentUserToken);
+            DatabaseHelper.saveAccessToken(Integer.parseInt(currentUserId), currentUserToken);
+            userTokens.put(currentUserId, accessToken);
 
-            // Save the user token to the userTokens map
-            userTokens.put(userId, accessToken);
-
-            System.out.println("Successfully authenticated and obtained access token.");
-        } catch (TwitterException | SQLException e) {
-            System.out.println("Exception: " + e.getMessage());
-            e.printStackTrace();
+            System.out.println("Successfully authenticated and obtained access token for user " + currentUserId);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -126,11 +123,17 @@ public class OAuthManager {
         return currentUserToken;
     }
 
-    public static void setCurrentUser(String screenName) {
+    public static void setCurrentUser(String userId) {
         try {
-            currentUserToken = DatabaseHelper.loadAccessToken(Integer.parseInt(screenName));
+            currentUserToken = DatabaseHelper.loadAccessToken(Integer.parseInt(userId));
             if (currentUserToken != null) {
+                if (twitter == null) {
+                    initializeTwitterInstance();
+                }
                 twitter.setOAuthAccessToken(currentUserToken);
+                System.out.println("Access token loaded and set for user: " + userId);
+            } else {
+                System.out.println("No access token found for user: " + userId);
             }
         } catch (SQLException e) {
             e.printStackTrace();
