@@ -49,4 +49,24 @@ public class APIHelper {
         }
         return authenticatedUser;
     }
+
+    // Method to post a tweet using a dynamic access token
+    public static void postTweet(String tweetText, AccessToken dynamicAccessToken) {
+        try {
+            ConfigurationBuilder cb = new ConfigurationBuilder();
+            cb.setDebugEnabled(true)
+                    .setOAuthConsumerKey(twitterApiKey)
+                    .setOAuthConsumerSecret(twitterApiKeySecret);
+
+            TwitterFactory tf = new TwitterFactory(cb.build());
+            Twitter twitter = tf.getInstance();
+            twitter.setOAuthAccessToken(dynamicAccessToken);
+
+            twitter.updateStatus(tweetText);
+            System.out.println("Successfully posted to Twitter: " + tweetText);
+        } catch (TwitterException e) {
+            System.out.println("Failed to post to Twitter: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
 }

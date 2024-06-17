@@ -2,6 +2,7 @@ package org.nhtoi.auth;
 
 import io.github.cdimascio.dotenv.Dotenv;
 import org.nhtoi.utils.DatabaseHelper;
+import twitter4j.JSONObject;
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
 import twitter4j.TwitterFactory;
@@ -159,7 +160,19 @@ public class OAuthManager {
             throw new IllegalArgumentException("Invalid callback URI: " + callbackURI);
         }
     }
-
+    private static String parseAccessToken(String response) {
+        try {
+            JSONObject jsonObject = new JSONObject(response);
+            if (jsonObject.has("access_token")) {
+                return jsonObject.getString("access_token");
+            } else {
+                throw new IllegalArgumentException("Access token not found in the response");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
     private static void initializeTwitterInstance() {
         twitter = new TwitterFactory().getInstance();
         twitter.setOAuthConsumer(twitterApiKey, twitterApiKeySecret);

@@ -11,7 +11,6 @@ import org.nhtoi.auth.OAuthManager;
 import org.nhtoi.model.User;
 import org.nhtoi.utils.APIHelper;
 import twitter4j.auth.AccessToken;
-import twitter4j.TwitterException;
 
 public class MainView extends Application {
     private static String loggedInUser;
@@ -44,6 +43,11 @@ public class MainView extends Application {
             Label followersLabel = new Label("Following: " + authenticatedUser.getFriendsCount());
             Label verifiedLabel = new Label("Verified: " + authenticatedUser.isVerified());
 
+            Button makePostButton = new Button("Make Post");
+            makePostButton.setOnAction(event -> {
+                PostManagerView.displayPostManagerView(primaryStage);
+            });
+
             Button logoutButton = new Button("Logout");
             logoutButton.setOnAction(event -> {
                 OAuthManager.logout();
@@ -51,7 +55,7 @@ public class MainView extends Application {
                 LogInView.displayLogInView(new Stage());
             });
 
-            layout.getChildren().addAll(nameLabel, screenNameLabel, descriptionLabel, followingLabel, followersLabel, verifiedLabel, logoutButton);
+            layout.getChildren().addAll(nameLabel, screenNameLabel, descriptionLabel, followingLabel, followersLabel, verifiedLabel, makePostButton, logoutButton);
         } else {
             Label noAuthLabel = new Label("No authenticated user found.");
             Button linkTwitterButton = new Button("Link Twitter Account");
